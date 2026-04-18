@@ -119,4 +119,4 @@ All protected endpoints expect the app password in the `Authorization` header.
 
 ## License
 
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
