@@ -1,6 +1,6 @@
 ﻿import { State } from './state.js';
 import { API } from './api.js';
-import { $, hideLogin, showLogin, showToast } from './ui.js';
+import { $, $$, hideLogin, showLogin, showToast } from './ui.js';
 
 // â”€â”€â”€ DOM References â”€â”€â”€
 const DOM = {
@@ -112,7 +112,7 @@ function initNavigation() {
     DOM.navLinks.classList.toggle("open");
   });
 
-  $(".nav-link").forEach((link) => {
+  $$(".nav-link").forEach((link) => {
     link.addEventListener("click", () => {
       DOM.navToggle.classList.remove("open");
       DOM.navLinks.classList.remove("open");
@@ -737,7 +737,7 @@ function initScrollReveal() {
     },
     { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
   );
-  $(".reveal").forEach((el) => observer.observe(el));
+  $$(".reveal").forEach((el) => observer.observe(el));
 }
 
 function escapeHtml(str) {
