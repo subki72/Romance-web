@@ -1,8 +1,7 @@
-﻿import { State } from './state.js';
+import { State } from './state.js';
 import { API } from './api.js';
 import { $, $$, hideLogin, showLogin, showToast } from './ui.js';
 
-// â”€â”€â”€ DOM References â”€â”€â”€
 const DOM = {
   heartsContainer: $("#heartsContainer"),
   navbar: $("#navbar"),
@@ -29,22 +28,16 @@ const DOM = {
   playlistToggleBtn: $("#playlistToggleBtn"),
   playlistPanel: $("#playlistPanel"),
   playlistList: $("#playlistList"),
-  poemModal: $("#poemModal"),
-  photoModal: $("#photoModal"),
-  songModal: $("#songModal"),
-  editPoemModal: $("#editPoemModal"),
   lightbox: $("#lightbox"),
   lightboxImg: $("#lightboxImg"),
   lightboxVideo: $("#lightboxVideo"),
   lightboxCaption: $("#lightboxCaption"),
 };
 
-// ==========================================
-// 1. AUTHENTICATION & INITIALIZATION
-// ==========================================
 async function initApp() {
   showLogin();
   setupLogin();
+  bindGlobalModalEvents();
 }
 
 function setupLogin() {
@@ -58,7 +51,7 @@ function setupLogin() {
     const isValid = await API.verifyPassword(pwd);
 
     if (!isValid) {
-      $("#loginError").textContent = "Wrong password, sweetie 💔";
+      $("#loginError").textContent = "Wrong password.";
       return;
     }
 
@@ -70,6 +63,7 @@ function setupLogin() {
       startAppRender();
     } else {
       showToast("Failed to load data from server", true);
+      showLogin();
     }
   });
 }
@@ -85,14 +79,13 @@ function startAppRender() {
   initScrollReveal();
 }
 
-// ==========================================
-// 2. MAIN APPLICATION FUNCTIONS
-// ==========================================
-
 function initFloatingHearts() {
-  const hearts = ["ðŸ’•", "â¤ï¸", "ðŸ’—", "ðŸ’–", "ðŸ’˜", "ðŸŒ¸", "ðŸ©·", "ðŸ’“"];
+  const hearts = ["+", "o", "*", "x", "."];
   const container = DOM.heartsContainer;
   const count = 18;
+
+  if (!container) return;
+  container.innerHTML = "";
 
   for (let i = 0; i < count; i++) {
     const heart = document.createElement("div");
@@ -107,6 +100,8 @@ function initFloatingHearts() {
 }
 
 function initNavigation() {
+  if (!DOM.navToggle || !DOM.navLinks || !DOM.navbar) return;
+
   DOM.navToggle.addEventListener("click", () => {
     DOM.navToggle.classList.toggle("open");
     DOM.navLinks.classList.toggle("open");
@@ -126,19 +121,21 @@ function initNavigation() {
 
     sections.forEach((id) => {
       const section = document.getElementById(id);
-      if (section) {
-        const top = section.offsetTop;
-        const height = section.offsetHeight;
-        const link = $(`.nav-link[href="#${id}"]`);
-        if (link) {
-          link.classList.toggle("active", scrollPos >= top && scrollPos < top + height);
-        }
+      if (!section) return;
+
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
+      const link = $(`.nav-link[href="#${id}"]`);
+      if (link) {
+        link.classList.toggle("active", scrollPos >= top && scrollPos < top + height);
       }
     });
   });
 }
 
 function initDaysCounter() {
+  if (!DOM.startDate || !DOM.daysCount) return;
+
   if (State.anniversary) DOM.startDate.value = State.anniversary;
 
   DOM.startDate.addEventListener("change", (e) => {
@@ -152,10 +149,13 @@ function initDaysCounter() {
 }
 
 function updateDaysCount() {
+  if (!DOM.daysCount) return;
+
   if (!State.anniversary) {
-    DOM.daysCount.textContent = "âˆž";
+    DOM.daysCount.textContent = "0";
     return;
   }
+
   const start = new Date(State.anniversary);
   const now = new Date();
   const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
@@ -163,7 +163,7 @@ function updateDaysCount() {
 }
 
 function animateNumber(el, target) {
-  const current = parseInt(el.textContent) || 0;
+  const current = parseInt(el.textContent, 10) || 0;
   if (current === target) return;
 
   const duration = 1500;
@@ -183,6 +183,8 @@ function animateNumber(el, target) {
 }
 
 function initCoupleNames() {
+  if (!DOM.name1 || !DOM.name2) return;
+
   DOM.name1.textContent = State.name1;
   DOM.name2.textContent = State.name2;
 
@@ -209,11 +211,11 @@ function initCoupleNames() {
 function initPoems() {
   renderPoems();
 
-  $("#addPoemBtn").addEventListener("click", () => openModal("poemModal"));
-  $("#closePoemModal").addEventListener("click", () => closeModal("poemModal"));
-  $("#closeEditPoemModal").addEventListener("click", () => closeModal("editPoemModal"));
+  $("#addPoemBtn")?.addEventListener("click", () => openModal("poemModal"));
+  $("#closePoemModal")?.addEventListener("click", () => closeModal("poemModal"));
+  $("#closeEditPoemModal")?.addEventListener("click", () => closeModal("editPoemModal"));
 
-  $("#savePoemBtn").addEventListener("click", () => {
+  $("#savePoemBtn")?.addEventListener("click", () => {
     const title = $("#poemTitleInput").value.trim();
     const text = $("#poemTextInput").value.trim();
     if (!title || !text) return;
@@ -232,8 +234,8 @@ function initPoems() {
     $("#poemTextInput").value = "";
   });
 
-  $("#updatePoemBtn").addEventListener("click", () => {
-    const id = parseInt($("#editPoemId").value);
+  $("#updatePoemBtn")?.addEventListener("click", () => {
+    const id = parseInt($("#editPoemId").value, 10);
     const title = $("#editPoemTitleInput").value.trim();
     const text = $("#editPoemTextInput").value.trim();
     if (!title || !text) return;
@@ -245,18 +247,21 @@ function initPoems() {
       API.saveData();
       renderPoems();
     }
+
     closeModal("editPoemModal");
   });
 }
 
 function renderPoems() {
+  if (!DOM.poemsGrid) return;
+
   DOM.poemsGrid.innerHTML = State.poems
     .map(
       (poem, i) => `
     <div class="poem-card" style="animation-delay: ${i * 0.1}s">
       <div class="poem-card-actions">
-        <button class="card-action-btn" onclick="editPoem(${poem.id})" title="Edit">âœï¸</button>
-        <button class="card-action-btn" onclick="deletePoem(${poem.id})" title="Delete">ðŸ—‘ï¸</button>
+        <button class="card-action-btn" onclick="editPoem(${poem.id})" title="Edit">E</button>
+        <button class="card-action-btn" onclick="deletePoem(${poem.id})" title="Delete">X</button>
       </div>
       <h3 class="poem-card-title">${escapeHtml(poem.title)}</h3>
       <p class="poem-card-text">${escapeHtml(poem.text)}</p>
@@ -270,6 +275,7 @@ function renderPoems() {
 window.editPoem = function (id) {
   const poem = State.poems.find((p) => p.id === id);
   if (!poem) return;
+
   $("#editPoemTitleInput").value = poem.title;
   $("#editPoemTextInput").value = poem.text;
   $("#editPoemId").value = id;
@@ -286,14 +292,16 @@ window.deletePoem = function (id) {
 function initGallery() {
   renderGallery();
 
-  $("#addPhotoBtn").addEventListener("click", () => {
+  $("#addPhotoBtn")?.addEventListener("click", () => {
     resetPhotoModal();
     openModal("photoModal");
   });
-  $("#closePhotoModal").addEventListener("click", () => closeModal("photoModal"));
+  $("#closePhotoModal")?.addEventListener("click", () => closeModal("photoModal"));
 
   const uploadArea = $("#photoUploadArea");
   const fileInput = $("#photoFileInput");
+
+  if (!uploadArea || !fileInput) return;
 
   uploadArea.addEventListener("click", () => fileInput.click());
   uploadArea.addEventListener("dragover", (e) => {
@@ -314,7 +322,7 @@ function initGallery() {
     if (e.target.files[0]) handlePhotoFile(e.target.files[0]);
   });
 
-  $("#savePhotoBtn").addEventListener("click", async () => {
+  $("#savePhotoBtn")?.addEventListener("click", async () => {
     const saveBtn = $("#savePhotoBtn");
     const caption = $("#photoCaptionInput").value.trim();
     if (!saveBtn._pendingFile) return;
@@ -330,7 +338,7 @@ function initGallery() {
         id: Date.now(),
         src: result.url,
         type: isVideoFile(saveBtn._pendingFile) ? "video" : "image",
-        caption: caption || "A sweet memory ðŸ’•",
+        caption: caption || "A sweet memory",
         date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
       });
 
@@ -348,8 +356,8 @@ function initGallery() {
     }
   });
 
-  $("#closeLightbox").addEventListener("click", closeLightbox);
-  DOM.lightbox.addEventListener("click", (e) => {
+  $("#closeLightbox")?.addEventListener("click", closeLightbox);
+  DOM.lightbox?.addEventListener("click", (e) => {
     if (e.target === DOM.lightbox) closeLightbox();
   });
 }
@@ -364,6 +372,7 @@ function handlePhotoFile(file) {
   const placeholder = $("#photoUploadArea .upload-placeholder");
   const tempUrl = URL.createObjectURL(file);
   const saveBtn = $("#savePhotoBtn");
+
   saveBtn._pendingFile = file;
   saveBtn._pendingUrl = tempUrl;
 
@@ -376,6 +385,7 @@ function handlePhotoFile(file) {
     imgPreview.style.display = "block";
     vidPreview.style.display = "none";
   }
+
   if (placeholder) placeholder.style.display = "none";
 }
 
@@ -383,6 +393,7 @@ function resetPhotoModal() {
   const imgPreview = $("#photoPreview");
   const vidPreview = $("#videoPreview");
   const placeholder = $("#photoUploadArea .upload-placeholder");
+
   imgPreview.src = "";
   imgPreview.style.display = "none";
   vidPreview.src = "";
@@ -393,18 +404,20 @@ function resetPhotoModal() {
 }
 
 function renderGallery() {
+  if (!DOM.galleryGrid) return;
+
   DOM.galleryGrid.innerHTML = State.photos
     .map(
       (photo, i) => `
     <div class="photo-card" style="animation-delay: ${i * 0.1}s">
-      <button class="photo-card-delete" onclick="deletePhoto(event, ${photo.id})" title="Delete">ðŸ—‘ï¸</button>
+      <button class="photo-card-delete" onclick="deletePhoto(event, ${photo.id})" title="Delete">X</button>
       <div class="photo-card-img-wrap" onclick="openLightbox('${escapeAttr(photo.src)}', '${escapeAttr(photo.caption)}', '${photo.type || "image"}')">
-        ${photo.type === 'video'
-          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">â–¶</div>`
+        ${photo.type === "video"
+          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">PLAY</div>`
           : `<img class="photo-card-img" src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption)}" loading="lazy">`
         }
         <div class="photo-card-overlay">
-          <span>Click to view ðŸ”</span>
+          <span>Click to view</span>
         </div>
       </div>
       <div class="photo-card-caption">
@@ -426,27 +439,32 @@ window.deletePhoto = function (event, id) {
 };
 
 window.openLightbox = function (src, caption, type) {
-  if (type === 'video') {
-    DOM.lightboxVid = $("#lightboxVideo");
-    DOM.lightboxVid.src = src;
-    DOM.lightboxVid.style.display = "block";
+  if (!DOM.lightbox || !DOM.lightboxCaption) return;
+
+  if (type === "video") {
+    DOM.lightboxVideo.src = src;
+    DOM.lightboxVideo.style.display = "block";
     DOM.lightboxImg.style.display = "none";
   } else {
     DOM.lightboxImg.src = src;
     DOM.lightboxImg.style.display = "block";
-    if ($("#lightboxVideo")) $("#lightboxVideo").style.display = "none";
+    DOM.lightboxVideo.style.display = "none";
   }
+
   DOM.lightboxCaption.textContent = caption;
   DOM.lightbox.classList.add("open");
   document.body.style.overflow = "hidden";
 };
 
 function closeLightbox() {
+  if (!DOM.lightbox) return;
+
   DOM.lightbox.classList.remove("open");
   document.body.style.overflow = "";
-  if ($("#lightboxVideo")) {
-    $("#lightboxVideo").pause();
-    $("#lightboxVideo").src = "";
+
+  if (DOM.lightboxVideo) {
+    DOM.lightboxVideo.pause();
+    DOM.lightboxVideo.src = "";
   }
 }
 
@@ -454,39 +472,41 @@ function initMusicPlayer() {
   const audio = State.audio;
   audio.volume = 0.8;
 
-  DOM.playBtn.addEventListener("click", togglePlay);
-  DOM.prevBtn.addEventListener("click", playPrev);
-  DOM.nextBtn.addEventListener("click", playNext);
+  DOM.playBtn?.addEventListener("click", togglePlay);
+  DOM.prevBtn?.addEventListener("click", playPrev);
+  DOM.nextBtn?.addEventListener("click", playNext);
 
-  DOM.progressBarContainer.addEventListener("click", (e) => {
+  DOM.progressBarContainer?.addEventListener("click", (e) => {
     if (!audio.duration) return;
     const rect = DOM.progressBarContainer.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
     audio.currentTime = pct * audio.duration;
   });
 
-  DOM.volumeSlider.addEventListener("input", (e) => {
+  DOM.volumeSlider?.addEventListener("input", (e) => {
     audio.volume = e.target.value / 100;
     updateVolumeIcon();
   });
 
-  DOM.volumeIcon.addEventListener("click", () => {
+  DOM.volumeIcon?.addEventListener("click", () => {
     audio.muted = !audio.muted;
     updateVolumeIcon();
   });
 
   audio.addEventListener("timeupdate", updateProgress);
   audio.addEventListener("loadedmetadata", () => {
-    DOM.totalTime.textContent = formatTime(audio.duration);
+    if (DOM.totalTime) DOM.totalTime.textContent = formatTime(audio.duration);
   });
   audio.addEventListener("ended", playNext);
 
-  DOM.playlistToggleBtn.addEventListener("click", () => {
-    DOM.playlistPanel.classList.toggle("open");
+  DOM.playlistToggleBtn?.addEventListener("click", () => {
+    DOM.playlistPanel?.classList.toggle("open");
   });
 
   document.addEventListener("click", (e) => {
     if (
+      DOM.playlistPanel &&
+      DOM.playlistToggleBtn &&
       !DOM.playlistPanel.contains(e.target) &&
       !DOM.playlistToggleBtn.contains(e.target) &&
       DOM.playlistPanel.classList.contains("open")
@@ -495,37 +515,35 @@ function initMusicPlayer() {
     }
   });
 
-  $("#addSongBtn").addEventListener("click", () => openModal("songModal"));
-  $("#closeSongModal").addEventListener("click", () => closeModal("songModal"));
+  $("#addSongBtn")?.addEventListener("click", () => openModal("songModal"));
+  $("#closeSongModal")?.addEventListener("click", () => closeModal("songModal"));
 
   const songUploadArea = $("#songUploadArea");
   const songFileInput = $("#songFileInput");
 
-  songUploadArea.addEventListener("click", () => songFileInput.click());
+  songUploadArea?.addEventListener("click", () => songFileInput.click());
 
-  songFileInput.addEventListener("change", (e) => {
+  songFileInput?.addEventListener("change", (e) => {
     if (e.target.files[0]) {
       const file = e.target.files[0];
-      $("#songFileName").textContent = `ðŸ“Ž ${file.name}`;
+      $("#songFileName").textContent = `File: ${file.name}`;
       songUploadArea._file = file;
     }
   });
 
-  $("#saveSongBtn").addEventListener("click", async () => {
+  $("#saveSongBtn")?.addEventListener("click", async () => {
     const title = $("#songTitleInput").value.trim();
     const artist = $("#songArtistInput").value.trim();
     const file = songUploadArea._file;
     const saveBtn = $("#saveSongBtn");
 
-    // Title and audio file are required
     if (!title || !file) {
-      showToast("Title and audio file are required!", true);
+      showToast("Title and audio file are required.", true);
       return;
     }
 
-    // Change button status to loading so you know it's uploading
     const originalText = saveBtn.textContent;
-    saveBtn.textContent = "Uploading... ðŸŽµ";
+    saveBtn.textContent = "Uploading...";
     saveBtn.disabled = true;
 
     try {
@@ -564,6 +582,7 @@ function initMusicPlayer() {
 
 function togglePlay() {
   if (State.playlist.length === 0) return;
+
   if (State.currentSongIndex < 0) {
     playSong(0);
     return;
@@ -572,12 +591,12 @@ function togglePlay() {
   if (State.isPlaying) {
     State.audio.pause();
     State.isPlaying = false;
-    DOM.playBtn.textContent = "â–¶";
+    DOM.playBtn.textContent = ">";
     DOM.playBtn.classList.remove("playing");
   } else {
     State.audio.play().catch(() => showToast("Browser blocked autoplay audio", true));
     State.isPlaying = true;
-    DOM.playBtn.textContent = "â¸";
+    DOM.playBtn.textContent = "||";
     DOM.playBtn.classList.add("playing");
   }
 }
@@ -589,7 +608,7 @@ function playSong(index) {
   State.currentSongIndex = index;
 
   if (!song.url) {
-    DOM.playerSongTitle.textContent = song.title + " (needs audio file)";
+    DOM.playerSongTitle.textContent = `${song.title} (needs audio file)`;
     DOM.playerArtist.textContent = song.artist;
     return;
   }
@@ -600,9 +619,9 @@ function playSong(index) {
 
   DOM.playerSongTitle.textContent = song.title;
   DOM.playerArtist.textContent = song.artist;
-  DOM.playBtn.textContent = "â¸";
+  DOM.playBtn.textContent = "||";
   DOM.playBtn.classList.add("playing");
-  DOM.albumArt.textContent = "ðŸŽµ";
+  DOM.albumArt.textContent = "M";
 
   renderPlaylist();
 }
@@ -615,10 +634,12 @@ function playNext() {
 
 function playPrev() {
   if (State.playlist.length === 0) return;
+
   if (State.audio.currentTime > 3) {
     State.audio.currentTime = 0;
     return;
   }
+
   const prev = State.currentSongIndex <= 0 ? State.playlist.length - 1 : State.currentSongIndex - 1;
   playSong(prev);
 }
@@ -626,26 +647,29 @@ function playPrev() {
 function updateProgress() {
   const audio = State.audio;
   if (!audio.duration) return;
+
   const pct = (audio.currentTime / audio.duration) * 100;
-  DOM.progressBarFill.style.width = pct + "%";
+  DOM.progressBarFill.style.width = `${pct}%`;
   DOM.currentTime.textContent = formatTime(audio.currentTime);
 }
 
 function updateVolumeIcon() {
   const v = State.audio.muted ? 0 : State.audio.volume;
-  DOM.volumeIcon.textContent = v === 0 ? "ðŸ”‡" : v < 0.5 ? "ðŸ”‰" : "ðŸ”Š";
+  DOM.volumeIcon.textContent = v === 0 ? "M" : v < 0.5 ? "L" : "H";
 }
 
 function formatTime(sec) {
-  if (!sec || isNaN(sec)) return "0:00";
+  if (!sec || Number.isNaN(sec)) return "0:00";
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function renderPlaylist() {
+  if (!DOM.playlistList) return;
+
   if (State.playlist.length === 0) {
-    DOM.playlistList.innerHTML = '<li class="playlist-empty">No songs yet. Add your favorite songs! ðŸŽµ</li>';
+    DOM.playlistList.innerHTML = '<li class="playlist-empty">No songs yet. Add your favorite songs.</li>';
     return;
   }
 
@@ -653,12 +677,12 @@ function renderPlaylist() {
     .map(
       (song, i) => `
     <li class="playlist-item ${i === State.currentSongIndex ? "active" : ""}" onclick="playSong(${i})">
-      <span class="playlist-item-icon">${i === State.currentSongIndex && State.isPlaying ? "ðŸ”Š" : "ðŸŽµ"}</span>
+      <span class="playlist-item-icon">${i === State.currentSongIndex && State.isPlaying ? "ON" : "M"}</span>
       <div class="playlist-item-info">
-        <div class="playlist-item-title">${escapeHtml(song.title)}${!song.url ? " âš ï¸" : ""}</div>
+        <div class="playlist-item-title">${escapeHtml(song.title)}${!song.url ? " !" : ""}</div>
         <div class="playlist-item-artist">${escapeHtml(song.artist)}</div>
       </div>
-      <button class="playlist-item-delete" onclick="deleteSong(event, ${i})" title="Remove">âœ•</button>
+      <button class="playlist-item-delete" onclick="deleteSong(event, ${i})" title="Remove">x</button>
     </li>
   `
     )
@@ -669,21 +693,18 @@ window.playSong = playSong;
 
 window.deleteSong = function (event, index) {
   event.stopPropagation();
+
   if (index === State.currentSongIndex) {
     State.audio.pause();
     State.isPlaying = false;
     State.currentSongIndex = -1;
-    DOM.playBtn.textContent = "â–¶";
+    DOM.playBtn.textContent = ">";
     DOM.playBtn.classList.remove("playing");
     DOM.playerSongTitle.textContent = "No Song Playing";
     DOM.playerArtist.textContent = "Upload a song to start";
     DOM.progressBarFill.style.width = "0%";
   } else if (index < State.currentSongIndex) {
     State.currentSongIndex--;
-  }
-
-  if (State.playlist[index].url) {
-    URL.revokeObjectURL(State.playlist[index].url);
   }
 
   State.playlist.splice(index, 1);
@@ -693,40 +714,47 @@ window.deleteSong = function (event, index) {
 
 function openModal(id) {
   const modal = $(`#${id}`);
-  if (modal) {
-    modal.classList.add("open");
-    document.body.style.overflow = "hidden";
-  }
+  if (!modal) return;
+
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
 }
 
 function closeModal(id) {
   const modal = $(`#${id}`);
-  if (modal) {
-    modal.classList.remove("open");
-    document.body.style.overflow = "";
-  }
+  if (!modal) return;
+
+  modal.classList.remove("open");
+  document.body.style.overflow = "";
 }
 
-$$(".modal-overlay").forEach((overlay) => {
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) {
-      overlay.classList.remove("open");
+function bindGlobalModalEvents() {
+  $$(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      $$(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
+      closeLightbox();
       document.body.style.overflow = "";
     }
-  });
-});
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    $$(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
-    closeLightbox();
-    document.body.style.overflow = "";
-  }
-  if (e.code === "Space" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) && !document.activeElement.contentEditable) {
-    e.preventDefault();
-    togglePlay();
-  }
-});
+    if (
+      e.code === "Space" &&
+      !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) &&
+      !document.activeElement.contentEditable
+    ) {
+      e.preventDefault();
+      togglePlay();
+    }
+  });
+}
 
 function initScrollReveal() {
   const observer = new IntersectionObserver(
@@ -737,6 +765,7 @@ function initScrollReveal() {
     },
     { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
   );
+
   $$(".reveal").forEach((el) => observer.observe(el));
 }
 
@@ -751,4 +780,3 @@ function escapeAttr(str) {
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
-
