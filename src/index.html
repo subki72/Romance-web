@@ -14,13 +14,13 @@
 <body>
 
   <div id="loginOverlay" class="login-overlay">
-    <div class="login-box">
+    <form class="login-box" id="loginForm">
       <h2>💕 Secret Memories</h2>
       <p>Enter our secret password</p>
       <input type="password" id="passwordInput" placeholder="Password...">
-      <button class="btn-primary" id="loginBtn">Enter</button>
+      <button class="btn-primary" id="loginBtn" type="submit">Enter</button>
       <p id="loginError" class="login-error"></p>
-    </div>
+    </form>
   </div>
 
   <div id="toast" class="toast"></div>

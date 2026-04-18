@@ -1,8 +1,8 @@
-import { State } from './state.js';
+﻿import { State } from './state.js';
 import { API } from './api.js';
 import { $, hideLogin, showLogin, showToast } from './ui.js';
 
-// ─── DOM References ───
+// â”€â”€â”€ DOM References â”€â”€â”€
 const DOM = {
   heartsContainer: $("#heartsContainer"),
   navbar: $("#navbar"),
@@ -48,29 +48,30 @@ async function initApp() {
 }
 
 function setupLogin() {
-  const loginBtn = $("#loginBtn");
-  if (loginBtn) {
-    const newBtn = loginBtn.cloneNode(true);
-    loginBtn.parentNode.replaceChild(newBtn, loginBtn);
+  const loginForm = $("#loginForm");
+  if (!loginForm) return;
 
-    newBtn.addEventListener("click", async () => {
-      const pwd = $("#passwordInput").value;
-      const isValid = await API.verifyPassword(pwd);
-      if (isValid) {
-        $("#loginError").textContent = "";
-        hideLogin();
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const success = await API.loadData();
-        if (success) {
-          startAppRender();
-        } else {
-          showToast("Failed to load data from server", true);
-        }
-      } else {
-        $("#loginError").textContent = "Wrong password, sweetie 💔";
-      }
-    });
-  }
+    const pwd = $("#passwordInput").value;
+    const isValid = await API.verifyPassword(pwd);
+
+    if (!isValid) {
+      $("#loginError").textContent = "Wrong password, sweetie 💔";
+      return;
+    }
+
+    $("#loginError").textContent = "";
+    hideLogin();
+
+    const success = await API.loadData();
+    if (success) {
+      startAppRender();
+    } else {
+      showToast("Failed to load data from server", true);
+    }
+  });
 }
 
 function startAppRender() {
@@ -89,7 +90,7 @@ function startAppRender() {
 // ==========================================
 
 function initFloatingHearts() {
-  const hearts = ["💕", "❤️", "💗", "💖", "💘", "🌸", "🩷", "💓"];
+  const hearts = ["ðŸ’•", "â¤ï¸", "ðŸ’—", "ðŸ’–", "ðŸ’˜", "ðŸŒ¸", "ðŸ©·", "ðŸ’“"];
   const container = DOM.heartsContainer;
   const count = 18;
 
@@ -152,7 +153,7 @@ function initDaysCounter() {
 
 function updateDaysCount() {
   if (!State.anniversary) {
-    DOM.daysCount.textContent = "∞";
+    DOM.daysCount.textContent = "âˆž";
     return;
   }
   const start = new Date(State.anniversary);
@@ -254,8 +255,8 @@ function renderPoems() {
       (poem, i) => `
     <div class="poem-card" style="animation-delay: ${i * 0.1}s">
       <div class="poem-card-actions">
-        <button class="card-action-btn" onclick="editPoem(${poem.id})" title="Edit">✏️</button>
-        <button class="card-action-btn" onclick="deletePoem(${poem.id})" title="Delete">🗑️</button>
+        <button class="card-action-btn" onclick="editPoem(${poem.id})" title="Edit">âœï¸</button>
+        <button class="card-action-btn" onclick="deletePoem(${poem.id})" title="Delete">ðŸ—‘ï¸</button>
       </div>
       <h3 class="poem-card-title">${escapeHtml(poem.title)}</h3>
       <p class="poem-card-text">${escapeHtml(poem.text)}</p>
@@ -329,7 +330,7 @@ function initGallery() {
         id: Date.now(),
         src: result.url,
         type: isVideoFile(saveBtn._pendingFile) ? "video" : "image",
-        caption: caption || "A sweet memory 💕",
+        caption: caption || "A sweet memory ðŸ’•",
         date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
       });
 
@@ -396,14 +397,14 @@ function renderGallery() {
     .map(
       (photo, i) => `
     <div class="photo-card" style="animation-delay: ${i * 0.1}s">
-      <button class="photo-card-delete" onclick="deletePhoto(event, ${photo.id})" title="Delete">🗑️</button>
+      <button class="photo-card-delete" onclick="deletePhoto(event, ${photo.id})" title="Delete">ðŸ—‘ï¸</button>
       <div class="photo-card-img-wrap" onclick="openLightbox('${escapeAttr(photo.src)}', '${escapeAttr(photo.caption)}', '${photo.type || "image"}')">
         ${photo.type === 'video'
-          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">▶</div>`
+          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">â–¶</div>`
           : `<img class="photo-card-img" src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption)}" loading="lazy">`
         }
         <div class="photo-card-overlay">
-          <span>Click to view 🔍</span>
+          <span>Click to view ðŸ”</span>
         </div>
       </div>
       <div class="photo-card-caption">
@@ -505,7 +506,7 @@ function initMusicPlayer() {
   songFileInput.addEventListener("change", (e) => {
     if (e.target.files[0]) {
       const file = e.target.files[0];
-      $("#songFileName").textContent = `📎 ${file.name}`;
+      $("#songFileName").textContent = `ðŸ“Ž ${file.name}`;
       songUploadArea._file = file;
     }
   });
@@ -524,7 +525,7 @@ function initMusicPlayer() {
 
     // Change button status to loading so you know it's uploading
     const originalText = saveBtn.textContent;
-    saveBtn.textContent = "Uploading... 🎵";
+    saveBtn.textContent = "Uploading... ðŸŽµ";
     saveBtn.disabled = true;
 
     try {
@@ -571,12 +572,12 @@ function togglePlay() {
   if (State.isPlaying) {
     State.audio.pause();
     State.isPlaying = false;
-    DOM.playBtn.textContent = "▶";
+    DOM.playBtn.textContent = "â–¶";
     DOM.playBtn.classList.remove("playing");
   } else {
     State.audio.play().catch(() => showToast("Browser blocked autoplay audio", true));
     State.isPlaying = true;
-    DOM.playBtn.textContent = "⏸";
+    DOM.playBtn.textContent = "â¸";
     DOM.playBtn.classList.add("playing");
   }
 }
@@ -599,9 +600,9 @@ function playSong(index) {
 
   DOM.playerSongTitle.textContent = song.title;
   DOM.playerArtist.textContent = song.artist;
-  DOM.playBtn.textContent = "⏸";
+  DOM.playBtn.textContent = "â¸";
   DOM.playBtn.classList.add("playing");
-  DOM.albumArt.textContent = "🎵";
+  DOM.albumArt.textContent = "ðŸŽµ";
 
   renderPlaylist();
 }
@@ -632,7 +633,7 @@ function updateProgress() {
 
 function updateVolumeIcon() {
   const v = State.audio.muted ? 0 : State.audio.volume;
-  DOM.volumeIcon.textContent = v === 0 ? "🔇" : v < 0.5 ? "🔉" : "🔊";
+  DOM.volumeIcon.textContent = v === 0 ? "ðŸ”‡" : v < 0.5 ? "ðŸ”‰" : "ðŸ”Š";
 }
 
 function formatTime(sec) {
@@ -644,7 +645,7 @@ function formatTime(sec) {
 
 function renderPlaylist() {
   if (State.playlist.length === 0) {
-    DOM.playlistList.innerHTML = '<li class="playlist-empty">No songs yet. Add your favorite songs! 🎵</li>';
+    DOM.playlistList.innerHTML = '<li class="playlist-empty">No songs yet. Add your favorite songs! ðŸŽµ</li>';
     return;
   }
 
@@ -652,12 +653,12 @@ function renderPlaylist() {
     .map(
       (song, i) => `
     <li class="playlist-item ${i === State.currentSongIndex ? "active" : ""}" onclick="playSong(${i})">
-      <span class="playlist-item-icon">${i === State.currentSongIndex && State.isPlaying ? "🔊" : "🎵"}</span>
+      <span class="playlist-item-icon">${i === State.currentSongIndex && State.isPlaying ? "ðŸ”Š" : "ðŸŽµ"}</span>
       <div class="playlist-item-info">
-        <div class="playlist-item-title">${escapeHtml(song.title)}${!song.url ? " ⚠️" : ""}</div>
+        <div class="playlist-item-title">${escapeHtml(song.title)}${!song.url ? " âš ï¸" : ""}</div>
         <div class="playlist-item-artist">${escapeHtml(song.artist)}</div>
       </div>
-      <button class="playlist-item-delete" onclick="deleteSong(event, ${i})" title="Remove">✕</button>
+      <button class="playlist-item-delete" onclick="deleteSong(event, ${i})" title="Remove">âœ•</button>
     </li>
   `
     )
@@ -672,7 +673,7 @@ window.deleteSong = function (event, index) {
     State.audio.pause();
     State.isPlaying = false;
     State.currentSongIndex = -1;
-    DOM.playBtn.textContent = "▶";
+    DOM.playBtn.textContent = "â–¶";
     DOM.playBtn.classList.remove("playing");
     DOM.playerSongTitle.textContent = "No Song Playing";
     DOM.playerArtist.textContent = "Upload a song to start";
@@ -706,7 +707,7 @@ function closeModal(id) {
   }
 }
 
-$(".modal-overlay").forEach((overlay) => {
+$$(".modal-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.classList.remove("open");
@@ -717,7 +718,7 @@ $(".modal-overlay").forEach((overlay) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    $(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
+    $$(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
     closeLightbox();
     document.body.style.overflow = "";
   }
@@ -750,3 +751,4 @@ function escapeAttr(str) {
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
+
