@@ -25,6 +25,11 @@ app.use(express.json());
 // Serve static files (src/, assets/)
 app.use('/', express.static(__dirname));
 
+// Redirect root to the main app
+app.get('/', (req, res) => {
+  res.redirect('/src/index.html');
+});
+
 // Multer: store in memory (we'll upload buffer to Supabase Storage)
 const upload = multer({
   storage: multer.memoryStorage(),
