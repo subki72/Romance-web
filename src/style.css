@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 /* ==============================================
    Sweet Memories — Romantic Pink Theme
    ============================================== */
@@ -620,7 +618,6 @@ body {
   box-shadow: var(--glass-shadow);
   cursor: pointer;
   transition: var(--transition);
-  group: true;
 }
 
 .photo-card:hover {
@@ -1459,4 +1456,94 @@ body {
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+
+/* ==============================================
+   TAMBAHAN FITUR AUTENTIKASI & NOTIFIKASI
+   (Paste di bagian paling bawah file CSS lu yang asli)
+   ============================================== */
+
+/* --- Login Overlay --- */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--pink-100, #fce7f3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease;
+}
+
+.login-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: var(--radius-lg, 28px);
+  text-align: center;
+  box-shadow: var(--glass-shadow, 0 8px 32px rgba(236, 72, 153, 0.18));
+  width: 90%;
+  max-width: 400px;
+}
+
+.login-box h2 {
+  color: var(--pink-700, #be185d);
+  font-family: var(--font-romantic, "Dancing Script", cursive);
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.login-box p {
+  color: var(--text-mid, #8b3a62);
+  margin-bottom: 20px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  border: 2px solid var(--pink-200, #fbcfe8);
+  border-radius: var(--radius-sm, 12px);
+  font-family: var(--font-body, "Poppins", sans-serif);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.login-box input:focus {
+  border-color: var(--pink-400, #f472b6);
+}
+
+.login-error {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  min-height: 20px;
+  margin-top: 10px;
+}
+
+/* --- Toast Notification --- */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: var(--pink-600, #db2777);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 20px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transform: translateX(120%);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.toast.show {
+  transform: translateX(0);
 }

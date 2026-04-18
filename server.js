@@ -3,7 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 
-// Load environment variables in development
+// Load environment variables
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -12,6 +12,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const APP_PASSWORD = process.env.APP_PASSWORD;
 
 // ─── Supabase Client ───
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -30,14 +31,33 @@ app.get('/', (req, res) => {
   res.redirect('/src/index.html');
 });
 
+// ─── Middleware Autentikasi ───
+const requireAuth = (req, res, next) => {
+  const clientPassword = req.headers['authorization'];
+  if (clientPassword !== APP_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized: Password salah atau sesi berakhir' });
+  }
+  next();
+};
+
+// ─── API: Verify Login ───
+app.post('/api/verify', (req, res) => {
+  const { password } = req.body;
+  if (password === APP_PASSWORD) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false });
+  }
+});
+
 // Multer: store in memory (we'll upload buffer to Supabase Storage)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
 });
 
-// ─── API: Get App Data ───
-app.get('/api/data', async (req, res) => {
+// ─── API: Get App Data (Protected) ───
+app.get('/api/data', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('app_data')
@@ -46,7 +66,6 @@ app.get('/api/data', async (req, res) => {
       .single();
 
     if (error && error.code === 'PGRST116') {
-      // Row doesn't exist yet, return defaults
       return res.json({
         poems: [],
         photos: [],
@@ -64,10 +83,10 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
-// ─── API: Save App Data ───
-app.post('/api/data', async (req, res) => {
+// ─── API: Save App Data (Protected) ───
+app.post('/api/data', requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('app_data')
       .upsert({ id: 1, data: req.body, updated_at: new Date().toISOString() })
       .select();
@@ -80,8 +99,8 @@ app.post('/api/data', async (req, res) => {
   }
 });
 
-// ─── API: Upload Media File ───
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// ─── API: Upload Media File (Protected) ───
+app.post('/api/upload', requireAuth, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -90,7 +109,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const ext = path.extname(req.file.originalname);
     const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('memories')
       .upload(fileName, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -112,8 +131,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// ─── API: Delete Media File ───
-app.delete('/api/upload/:filename', async (req, res) => {
+// ─── API: Delete Media File (Protected) ───
+app.delete('/api/upload/:filename', requireAuth, async (req, res) => {
   try {
     const { error } = await supabase.storage
       .from('memories')

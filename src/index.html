@@ -9,14 +9,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./output.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Floating Hearts Background -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+      <h2>💕 Secret Memories</h2>
+      <p>Masukkan password rahasia kita</p>
+      <input type="password" id="passwordInput" placeholder="Password...">
+      <button class="btn-primary" id="loginBtn">Masuk</button>
+      <p id="loginError" class="login-error"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
   <div class="hearts-container" id="heartsContainer" aria-hidden="true"></div>
 
-  <!-- Navigation -->
   <nav class="navbar" id="navbar">
     <a href="#home" class="nav-brand">💕 Our Memories</a>
     <div class="nav-links" id="navLinks">
@@ -29,7 +39,6 @@
     </button>
   </nav>
 
-  <!-- Hero Section -->
   <section id="home" class="hero">
     <div class="hero-bg-decor"></div>
     <div class="hero-content reveal">
@@ -55,7 +64,6 @@
     </div>
   </section>
 
-  <!-- Poetry Section -->
   <section id="poems" class="section poems-section">
     <div class="section-header reveal">
       <h2 class="section-title">💌 Love Poems</h2>
@@ -67,7 +75,6 @@
     <div class="poems-grid" id="poemsGrid"></div>
   </section>
 
-  <!-- Gallery Section -->
   <section id="gallery" class="section gallery-section">
     <div class="section-header reveal">
       <h2 class="section-title">📸 Our Moments</h2>
@@ -79,12 +86,10 @@
     <div class="gallery-grid" id="galleryGrid"></div>
   </section>
 
-  <!-- Footer -->
   <footer class="footer">
     <p>Made with ❤️ for the one I love</p>
   </footer>
 
-  <!-- Music Player (Fixed Bottom) -->
   <div class="music-player" id="musicPlayer">
     <div class="player-left">
       <div class="player-album-art" id="albumArt">🎵</div>
@@ -116,7 +121,6 @@
     </div>
   </div>
 
-  <!-- Playlist Panel -->
   <div class="playlist-panel" id="playlistPanel">
     <div class="playlist-header">
       <h3>🎶 Our Playlist</h3>
@@ -127,7 +131,6 @@
     </ul>
   </div>
 
-  <!-- Poem Modal -->
   <div class="modal-overlay" id="poemModal">
     <div class="modal">
       <button class="modal-close" id="closePoemModal">✕</button>
@@ -138,7 +141,6 @@
     </div>
   </div>
 
-  <!-- Photo Modal -->
   <div class="modal-overlay" id="photoModal">
     <div class="modal">
       <button class="modal-close" id="closePhotoModal">✕</button>
@@ -157,7 +159,6 @@
     </div>
   </div>
 
-  <!-- Song Modal -->
   <div class="modal-overlay" id="songModal">
     <div class="modal">
       <button class="modal-close" id="closeSongModal">✕</button>
@@ -176,7 +177,6 @@
     </div>
   </div>
 
-  <!-- Lightbox -->
   <div class="lightbox" id="lightbox">
     <button class="lightbox-close" id="closeLightbox">✕</button>
     <img class="lightbox-img" id="lightboxImg" src="" alt="" style="display:none">
@@ -184,7 +184,6 @@
     <div class="lightbox-caption" id="lightboxCaption"></div>
   </div>
 
-  <!-- Edit Poem Modal -->
   <div class="modal-overlay" id="editPoemModal">
     <div class="modal">
       <button class="modal-close" id="closeEditPoemModal">✕</button>
@@ -196,6 +195,6 @@
     </div>
   </div>
 
-  <script src="./script.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>

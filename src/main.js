@@ -1,11 +1,7 @@
-/* ==============================================
-   Sweet Memories — Application Logic
-   ============================================== */
-
+import { State } from './state.js';
+import { API } from './api.js';
+import { $, $$, hideLogin, showLogin, showToast } from './ui.js';
 // ─── DOM References ───
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
-
 const DOM = {
   heartsContainer: $("#heartsContainer"),
   navbar: $("#navbar"),
@@ -17,7 +13,6 @@ const DOM = {
   daysCount: $("#daysCount"),
   poemsGrid: $("#poemsGrid"),
   galleryGrid: $("#galleryGrid"),
-  // Music Player
   playerSongTitle: $("#playerSongTitle"),
   playerArtist: $("#playerArtist"),
   albumArt: $("#albumArt"),
@@ -33,84 +28,65 @@ const DOM = {
   playlistToggleBtn: $("#playlistToggleBtn"),
   playlistPanel: $("#playlistPanel"),
   playlistList: $("#playlistList"),
-  // Modals
   poemModal: $("#poemModal"),
   photoModal: $("#photoModal"),
   songModal: $("#songModal"),
   editPoemModal: $("#editPoemModal"),
-  // Lightbox
   lightbox: $("#lightbox"),
   lightboxImg: $("#lightboxImg"),
   lightboxVideo: $("#lightboxVideo"),
   lightboxCaption: $("#lightboxCaption"),
 };
 
-// ─── State ───
-const State = {
-  poems: [],
-  photos: [],
-  playlist: [],
-  currentSongIndex: -1,
-  isPlaying: false,
-  audio: new Audio(),
-  anniversary: null,
-  name1: "Your Name",
-  name2: "Partner",
-};
+// ==========================================
+// 1. AUTENTIKASI & INISIALISASI
+// ==========================================
+async function initApp() {
+  showLogin();
+  setupLogin();
+}
 
-// ─── Backend Storage ───
-const Storage = {
-  async save() {
-    const data = {
-      poems: State.poems,
-      photos: State.photos.map(p => ({
-        id: p.id,
-        type: p.type,
-        caption: p.caption,
-        date: p.date,
-        src: p.src
-      })),
-      playlist: State.playlist.map(({ title, artist }) => ({ title, artist })),
-      anniversary: State.anniversary,
-      name1: State.name1,
-      name2: State.name2,
-    };
-    try {
-      await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    } catch (e) {
-      console.warn("Backend save failed:", e);
-    }
-  },
+function setupLogin() {
+  const loginBtn = $("#loginBtn");
+  if (loginBtn) {
+    const newBtn = loginBtn.cloneNode(true);
+    loginBtn.parentNode.replaceChild(newBtn, loginBtn);
 
-  async load() {
-    try {
-      const res = await fetch('/api/data');
-      if (res.ok) {
-        const data = await res.json();
-        State.poems = data.poems || [];
-        State.photos = data.photos || [];
-        State.anniversary = data.anniversary || null;
-        State.name1 = data.name1 || "Your Name";
-        State.name2 = data.name2 || "Partner";
-        if (data.playlist) {
-          State.playlist = data.playlist.map((s) => ({
-            title: s.title,
-            artist: s.artist,
-            url: null,
-          }));
+    newBtn.addEventListener("click", async () => {
+      const pwd = $("#passwordInput").value;
+      const isValid = await API.verifyPassword(pwd);
+      if (isValid) {
+        $("#loginError").textContent = "";
+        hideLogin();
+
+        const success = await API.loadData();
+        if (success) {
+          startAppRender();
+        } else {
+          showToast("Gagal memuat data dari server", true);
         }
+      } else {
+        $("#loginError").textContent = "Password salah sayang 💔";
       }
-    } catch (e) {
-      console.warn("Backend load failed:", e);
-    }
+    });
   }
-};
+}
 
-// ─── Floating Hearts ───
+function startAppRender() {
+  initFloatingHearts();
+  initNavigation();
+  initDaysCounter();
+  initCoupleNames();
+  initPoems();
+  initGallery();
+  initMusicPlayer();
+  initScrollReveal();
+}
+
+// ==========================================
+// 2. FUNGSI UTAMA APLIKASI
+// ==========================================
+
 function initFloatingHearts() {
   const hearts = ["💕", "❤️", "💗", "💖", "💘", "🌸", "🩷", "💓"];
   const container = DOM.heartsContainer;
@@ -128,15 +104,12 @@ function initFloatingHearts() {
   }
 }
 
-// ─── Navigation ───
 function initNavigation() {
-  // Mobile toggle
   DOM.navToggle.addEventListener("click", () => {
     DOM.navToggle.classList.toggle("open");
     DOM.navLinks.classList.toggle("open");
   });
 
-  // Close mobile menu on link click
   $$(".nav-link").forEach((link) => {
     link.addEventListener("click", () => {
       DOM.navToggle.classList.remove("open");
@@ -144,12 +117,8 @@ function initNavigation() {
     });
   });
 
-  // Navbar scroll effect
-  let lastScroll = 0;
   window.addEventListener("scroll", () => {
     DOM.navbar.classList.toggle("scrolled", window.scrollY > 50);
-
-    // Active link based on scroll position
     const sections = ["home", "poems", "gallery"];
     const scrollPos = window.scrollY + 120;
 
@@ -164,20 +133,15 @@ function initNavigation() {
         }
       }
     });
-
-    lastScroll = window.scrollY;
   });
 }
 
-// ─── Days Counter ───
 function initDaysCounter() {
-  if (State.anniversary) {
-    DOM.startDate.value = State.anniversary;
-  }
+  if (State.anniversary) DOM.startDate.value = State.anniversary;
 
   DOM.startDate.addEventListener("change", (e) => {
     State.anniversary = e.target.value;
-    Storage.save();
+    API.saveData();
     updateDaysCount();
   });
 
@@ -190,7 +154,6 @@ function updateDaysCount() {
     DOM.daysCount.textContent = "∞";
     return;
   }
-
   const start = new Date(State.anniversary);
   const now = new Date();
   const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
@@ -217,22 +180,20 @@ function animateNumber(el, target) {
   }, duration / steps);
 }
 
-// ─── Couple Names ───
 function initCoupleNames() {
   DOM.name1.textContent = State.name1;
   DOM.name2.textContent = State.name2;
 
   DOM.name1.addEventListener("blur", () => {
     State.name1 = DOM.name1.textContent.trim() || "Your Name";
-    Storage.save();
+    API.saveData();
   });
 
   DOM.name2.addEventListener("blur", () => {
     State.name2 = DOM.name2.textContent.trim() || "Partner";
-    Storage.save();
+    API.saveData();
   });
 
-  // Prevent Enter key in contenteditable
   [DOM.name1, DOM.name2].forEach((el) => {
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -243,35 +204,13 @@ function initCoupleNames() {
   });
 }
 
-// ─── Poems ───
 function initPoems() {
-  // Default poems if empty
-  if (State.poems.length === 0) {
-    State.poems = [
-      {
-        id: Date.now(),
-        title: "First Moment",
-        text: "Our eyes met like stars aligning,\nIn that moment, time stood still.\nThe world was bright and shining,\nWith a love only we could feel.",
-        date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-      },
-      {
-        id: Date.now() + 1,
-        title: "Forever Yours",
-        text: "In every heartbeat, I find you,\nIn every breath, you're there.\nThrough every storm, I'll hold you,\nA love beyond compare.",
-        date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-      },
-    ];
-    Storage.save();
-  }
-
   renderPoems();
 
-  // Add poem button
   $("#addPoemBtn").addEventListener("click", () => openModal("poemModal"));
   $("#closePoemModal").addEventListener("click", () => closeModal("poemModal"));
   $("#closeEditPoemModal").addEventListener("click", () => closeModal("editPoemModal"));
 
-  // Save poem
   $("#savePoemBtn").addEventListener("click", () => {
     const title = $("#poemTitleInput").value.trim();
     const text = $("#poemTextInput").value.trim();
@@ -284,14 +223,13 @@ function initPoems() {
       date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
     });
 
-    Storage.save();
+    API.saveData();
     renderPoems();
     closeModal("poemModal");
     $("#poemTitleInput").value = "";
     $("#poemTextInput").value = "";
   });
 
-  // Update poem
   $("#updatePoemBtn").addEventListener("click", () => {
     const id = parseInt($("#editPoemId").value);
     const title = $("#editPoemTitleInput").value.trim();
@@ -302,7 +240,7 @@ function initPoems() {
     if (poem) {
       poem.title = title;
       poem.text = text;
-      Storage.save();
+      API.saveData();
       renderPoems();
     }
     closeModal("editPoemModal");
@@ -339,46 +277,28 @@ window.editPoem = function (id) {
 window.deletePoem = function (id) {
   if (!confirm("Delete this poem?")) return;
   State.poems = State.poems.filter((p) => p.id !== id);
-  Storage.save();
+  API.saveData();
   renderPoems();
 };
 
-// ─── Gallery ───
 function initGallery() {
-  // Default photos from assets folder if gallery is empty
-  if (State.photos.length === 0) {
-    State.photos = [
-      { id: 1, type: "image", src: "/assets/1.jpg", caption: "Our Beautiful Moment", date: "Forever" },
-      { id: 2, type: "image", src: "/assets/2.jpg", caption: "Together Always", date: "Forever" },
-      { id: 3, type: "image", src: "/assets/3.jpg", caption: "Sweet Memories", date: "Forever" },
-    ];
-    Storage.save();
-  }
-
   renderGallery();
 
-  // Add photo button
   $("#addPhotoBtn").addEventListener("click", () => {
     resetPhotoModal();
     openModal("photoModal");
   });
   $("#closePhotoModal").addEventListener("click", () => closeModal("photoModal"));
 
-  // Photo upload area
   const uploadArea = $("#photoUploadArea");
   const fileInput = $("#photoFileInput");
 
   uploadArea.addEventListener("click", () => fileInput.click());
-
   uploadArea.addEventListener("dragover", (e) => {
     e.preventDefault();
     uploadArea.classList.add("dragover");
   });
-
-  uploadArea.addEventListener("dragleave", () => {
-    uploadArea.classList.remove("dragover");
-  });
-
+  uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("dragover"));
   uploadArea.addEventListener("drop", (e) => {
     e.preventDefault();
     uploadArea.classList.remove("dragover");
@@ -392,30 +312,17 @@ function initGallery() {
     if (e.target.files[0]) handlePhotoFile(e.target.files[0]);
   });
 
-  // Save photo
   $("#savePhotoBtn").addEventListener("click", async () => {
     const saveBtn = $("#savePhotoBtn");
     const caption = $("#photoCaptionInput").value.trim();
-    
     if (!saveBtn._pendingFile) return;
 
-    // Change button text while uploading
     const originalText = saveBtn.textContent;
     saveBtn.textContent = "Uploading...";
     saveBtn.disabled = true;
 
     try {
-      const formData = new FormData();
-      formData.append('file', saveBtn._pendingFile);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) throw new Error("Upload failed");
-
-      const result = await response.json();
+      const result = await API.uploadFile(saveBtn._pendingFile);
 
       State.photos.unshift({
         id: Date.now(),
@@ -425,12 +332,12 @@ function initGallery() {
         date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
       });
 
-      Storage.save();
+      API.saveData();
       renderGallery();
       closeModal("photoModal");
     } catch (e) {
       console.error(e);
-      alert("Failed to upload memory");
+      showToast("Failed to upload memory", true);
     } finally {
       saveBtn._pendingFile = null;
       saveBtn._pendingUrl = null;
@@ -439,7 +346,6 @@ function initGallery() {
     }
   });
 
-  // Lightbox
   $("#closeLightbox").addEventListener("click", closeLightbox);
   DOM.lightbox.addEventListener("click", (e) => {
     if (e.target === DOM.lightbox) closeLightbox();
@@ -454,12 +360,11 @@ function handlePhotoFile(file) {
   const imgPreview = $("#photoPreview");
   const vidPreview = $("#videoPreview");
   const placeholder = $("#photoUploadArea .upload-placeholder");
-  
   const tempUrl = URL.createObjectURL(file);
   const saveBtn = $("#savePhotoBtn");
   saveBtn._pendingFile = file;
   saveBtn._pendingUrl = tempUrl;
-  
+
   if (isVideoFile(file)) {
     vidPreview.src = tempUrl;
     vidPreview.style.display = "block";
@@ -492,8 +397,8 @@ function renderGallery() {
     <div class="photo-card" style="animation-delay: ${i * 0.1}s">
       <button class="photo-card-delete" onclick="deletePhoto(event, ${photo.id})" title="Delete">🗑️</button>
       <div class="photo-card-img-wrap" onclick="openLightbox('${escapeAttr(photo.src)}', '${escapeAttr(photo.caption)}', '${photo.type || "image"}')">
-        ${photo.type === 'video' 
-          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">▶</div>` 
+        ${photo.type === 'video'
+          ? `<video class="photo-card-img" src="${escapeAttr(photo.src)}" preload="metadata"></video><div class="video-play-indicator">▶</div>`
           : `<img class="photo-card-img" src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption)}" loading="lazy">`
         }
         <div class="photo-card-overlay">
@@ -514,7 +419,7 @@ window.deletePhoto = function (event, id) {
   event.stopPropagation();
   if (!confirm("Delete this memory?")) return;
   State.photos = State.photos.filter((p) => p.id !== id);
-  Storage.save();
+  API.saveData();
   renderGallery();
 };
 
@@ -543,17 +448,14 @@ function closeLightbox() {
   }
 }
 
-// ─── Music Player ───
 function initMusicPlayer() {
   const audio = State.audio;
   audio.volume = 0.8;
 
-  // Play/Pause
   DOM.playBtn.addEventListener("click", togglePlay);
   DOM.prevBtn.addEventListener("click", playPrev);
   DOM.nextBtn.addEventListener("click", playNext);
 
-  // Progress
   DOM.progressBarContainer.addEventListener("click", (e) => {
     if (!audio.duration) return;
     const rect = DOM.progressBarContainer.getBoundingClientRect();
@@ -561,7 +463,6 @@ function initMusicPlayer() {
     audio.currentTime = pct * audio.duration;
   });
 
-  // Volume
   DOM.volumeSlider.addEventListener("input", (e) => {
     audio.volume = e.target.value / 100;
     updateVolumeIcon();
@@ -572,19 +473,16 @@ function initMusicPlayer() {
     updateVolumeIcon();
   });
 
-  // Audio events
   audio.addEventListener("timeupdate", updateProgress);
   audio.addEventListener("loadedmetadata", () => {
     DOM.totalTime.textContent = formatTime(audio.duration);
   });
   audio.addEventListener("ended", playNext);
 
-  // Playlist toggle
   DOM.playlistToggleBtn.addEventListener("click", () => {
     DOM.playlistPanel.classList.toggle("open");
   });
 
-  // Close playlist when clicking outside
   document.addEventListener("click", (e) => {
     if (
       !DOM.playlistPanel.contains(e.target) &&
@@ -595,7 +493,6 @@ function initMusicPlayer() {
     }
   });
 
-  // Add song
   $("#addSongBtn").addEventListener("click", () => openModal("songModal"));
   $("#closeSongModal").addEventListener("click", () => closeModal("songModal"));
 
@@ -612,35 +509,51 @@ function initMusicPlayer() {
     }
   });
 
-  // Save song
-  $("#saveSongBtn").addEventListener("click", () => {
+  $("#saveSongBtn").addEventListener("click", async () => {
     const title = $("#songTitleInput").value.trim();
     const artist = $("#songArtistInput").value.trim();
     const file = songUploadArea._file;
+    const saveBtn = $("#saveSongBtn"); // Ambil referensi tombol
 
-    if (!title) return;
+    // Wajib masukin judul dan file lagu
+    if (!title || !file) {
+      showToast("Judul dan file lagu wajib diisi!", true);
+      return;
+    }
 
-    const song = {
-      title,
-      artist: artist || "Unknown Artist",
-      url: file ? URL.createObjectURL(file) : null,
-    };
+    // Ubah status tombol jadi loading biar lu tau dia lagi nge-upload
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = "Uploading... 🎵";
+    saveBtn.disabled = true;
 
-    State.playlist.push(song);
-    Storage.save();
-    renderPlaylist();
-    closeModal("songModal");
+    try {
+      const result = await API.uploadFile(file);
+      const song = {
+        title,
+        artist: artist || "Unknown Artist",
+        url: result.url,
+      };
 
-    // Reset
-    $("#songTitleInput").value = "";
-    $("#songArtistInput").value = "";
-    $("#songFileName").textContent = "";
-    songUploadArea._file = null;
-    songFileInput.value = "";
+      State.playlist.push(song);
+      API.saveData();
+      renderPlaylist();
+      closeModal("songModal");
 
-    // Auto-play if first song
-    if (State.playlist.length === 1 && song.url) {
-      playSong(0);
+      $("#songTitleInput").value = "";
+      $("#songArtistInput").value = "";
+      $("#songFileName").textContent = "";
+      songUploadArea._file = null;
+      $("#songFileInput").value = "";
+
+      if (State.playlist.length === 1) {
+        playSong(0);
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Gagal mengupload lagu", true);
+    } finally {
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
     }
   });
 
@@ -660,7 +573,7 @@ function togglePlay() {
     DOM.playBtn.textContent = "▶";
     DOM.playBtn.classList.remove("playing");
   } else {
-    State.audio.play().catch(() => {});
+    State.audio.play().catch(() => showToast("Browser memblokir autoplay audio", true));
     State.isPlaying = true;
     DOM.playBtn.textContent = "⏸";
     DOM.playBtn.classList.add("playing");
@@ -680,7 +593,7 @@ function playSong(index) {
   }
 
   State.audio.src = song.url;
-  State.audio.play().catch(() => {});
+  State.audio.play().catch(() => showToast("Browser memblokir autoplay audio", true));
   State.isPlaying = true;
 
   DOM.playerSongTitle.textContent = song.title;
@@ -700,7 +613,6 @@ function playNext() {
 
 function playPrev() {
   if (State.playlist.length === 0) return;
-  // If more than 3 seconds in, restart instead
   if (State.audio.currentTime > 3) {
     State.audio.currentTime = 0;
     return;
@@ -768,17 +680,15 @@ window.deleteSong = function (event, index) {
     State.currentSongIndex--;
   }
 
-  // Revoke blob URL
   if (State.playlist[index].url) {
     URL.revokeObjectURL(State.playlist[index].url);
   }
 
   State.playlist.splice(index, 1);
-  Storage.save();
+  API.saveData();
   renderPlaylist();
 };
 
-// ─── Modals ───
 function openModal(id) {
   const modal = $(`#${id}`);
   if (modal) {
@@ -795,7 +705,6 @@ function closeModal(id) {
   }
 }
 
-// Close modals on overlay click
 $$(".modal-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
@@ -805,43 +714,30 @@ $$(".modal-overlay").forEach((overlay) => {
   });
 });
 
-// Close modals on Escape key
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    $$(".modal-overlay.open").forEach((m) => {
-      m.classList.remove("open");
-    });
+    $$(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
     closeLightbox();
     document.body.style.overflow = "";
   }
-});
-
-// ─── Scroll Reveal ───
-function initScrollReveal() {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-        }
-      });
-    },
-    { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
-  );
-
-  $$(".reveal").forEach((el) => observer.observe(el));
-}
-
-// ─── Keyboard Shortcuts ───
-document.addEventListener("keydown", (e) => {
-  // Space bar to toggle play (when not typing)
   if (e.code === "Space" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) && !document.activeElement.contentEditable) {
     e.preventDefault();
     togglePlay();
   }
 });
 
-// ─── Utilities ───
+function initScrollReveal() {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("visible");
+      });
+    },
+    { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+  );
+  $$(".reveal").forEach((el) => observer.observe(el));
+}
+
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
@@ -852,15 +748,4 @@ function escapeAttr(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }
 
-// ─── Initialize ───
-document.addEventListener("DOMContentLoaded", async () => {
-  await Storage.load();
-  initFloatingHearts();
-  initNavigation();
-  initDaysCounter();
-  initCoupleNames();
-  initPoems();
-  initGallery();
-  initMusicPlayer();
-  initScrollReveal();
-});
+document.addEventListener("DOMContentLoaded", initApp);
