@@ -1,7 +1,7 @@
 import { State } from './state.js';
 import { showToast, showLogin } from './ui.js';
 
-// Simpan password di memori sementara, BUKAN di browser storage
+// Store password in temporary memory, NOT in browser storage
 let currentPassword = '';
 
 const getHeaders = () => ({
@@ -11,11 +11,11 @@ const getHeaders = () => ({
 
 const handleResponse = async (res) => {
     if (res.status === 401) {
-        currentPassword = ''; // Reset password kalau ditolak
+        currentPassword = ''; // Reset password if rejected
         showLogin();
-        throw new Error('Sesi berakhir atau password salah');
+        throw new Error('Session expired or invalid password');
     }
-    if (!res.ok) throw new Error('Terjadi kesalahan server');
+    if (!res.ok) throw new Error('Server error occurred');
     return res.json();
 };
 
@@ -28,7 +28,7 @@ export const API = {
                 body: JSON.stringify({ password })
             });
             if (res.ok) {
-                currentPassword = password; // Simpan ke variabel sementara
+                currentPassword = password; // Store in temporary variable
                 return true;
             }
             return false;
@@ -47,7 +47,7 @@ export const API = {
             }
             return true;
         } catch (e) {
-            console.error("Gagal load data:", e);
+            console.error("Failed to load data:", e);
             return false;
         }
     },
@@ -75,10 +75,10 @@ export const API = {
                 body: JSON.stringify(dataToSave)
             }).then(handleResponse);
 
-            showToast("Kenangan tersimpan 💕");
+            showToast("Memory saved 💕");
         } catch (e) {
-            console.error("Gagal save data:", e);
-            showToast("Gagal menyimpan data", true);
+            console.error("Failed to save data:", e);
+            showToast("Failed to save data", true);
         }
     },
     async uploadFile(file) {
@@ -88,7 +88,7 @@ export const API = {
         const res = await fetch('/api/upload', {
             method: 'POST',
             headers: {
-                'Authorization': currentPassword // Pakai variabel
+                'Authorization': currentPassword // Use variable
             },
             body: formData
         });

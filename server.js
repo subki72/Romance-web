@@ -31,11 +31,11 @@ app.get('/', (req, res) => {
   res.redirect('/src/index.html');
 });
 
-// ─── Middleware Autentikasi ───
+// ─── Authentication Middleware ───
 const requireAuth = (req, res, next) => {
   const clientPassword = req.headers['authorization'];
   if (clientPassword !== APP_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized: Password salah atau sesi berakhir' });
+    return res.status(401).json({ error: 'Unauthorized: Invalid password or session expired' });
   }
   next();
 };

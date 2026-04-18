@@ -1,6 +1,7 @@
 import { State } from './state.js';
 import { API } from './api.js';
-import { $, $$, hideLogin, showLogin, showToast } from './ui.js';
+import { $, hideLogin, showLogin, showToast } from './ui.js';
+
 // ─── DOM References ───
 const DOM = {
   heartsContainer: $("#heartsContainer"),
@@ -39,7 +40,7 @@ const DOM = {
 };
 
 // ==========================================
-// 1. AUTENTIKASI & INISIALISASI
+// 1. AUTHENTICATION & INITIALIZATION
 // ==========================================
 async function initApp() {
   showLogin();
@@ -63,10 +64,10 @@ function setupLogin() {
         if (success) {
           startAppRender();
         } else {
-          showToast("Gagal memuat data dari server", true);
+          showToast("Failed to load data from server", true);
         }
       } else {
-        $("#loginError").textContent = "Password salah sayang 💔";
+        $("#loginError").textContent = "Wrong password, sweetie 💔";
       }
     });
   }
@@ -84,7 +85,7 @@ function startAppRender() {
 }
 
 // ==========================================
-// 2. FUNGSI UTAMA APLIKASI
+// 2. MAIN APPLICATION FUNCTIONS
 // ==========================================
 
 function initFloatingHearts() {
@@ -110,7 +111,7 @@ function initNavigation() {
     DOM.navLinks.classList.toggle("open");
   });
 
-  $$(".nav-link").forEach((link) => {
+  $(".nav-link").forEach((link) => {
     link.addEventListener("click", () => {
       DOM.navToggle.classList.remove("open");
       DOM.navLinks.classList.remove("open");
@@ -513,15 +514,15 @@ function initMusicPlayer() {
     const title = $("#songTitleInput").value.trim();
     const artist = $("#songArtistInput").value.trim();
     const file = songUploadArea._file;
-    const saveBtn = $("#saveSongBtn"); // Ambil referensi tombol
+    const saveBtn = $("#saveSongBtn");
 
-    // Wajib masukin judul dan file lagu
+    // Title and audio file are required
     if (!title || !file) {
-      showToast("Judul dan file lagu wajib diisi!", true);
+      showToast("Title and audio file are required!", true);
       return;
     }
 
-    // Ubah status tombol jadi loading biar lu tau dia lagi nge-upload
+    // Change button status to loading so you know it's uploading
     const originalText = saveBtn.textContent;
     saveBtn.textContent = "Uploading... 🎵";
     saveBtn.disabled = true;
@@ -550,7 +551,7 @@ function initMusicPlayer() {
       }
     } catch (e) {
       console.error(e);
-      showToast("Gagal mengupload lagu", true);
+      showToast("Failed to upload song", true);
     } finally {
       saveBtn.textContent = originalText;
       saveBtn.disabled = false;
@@ -573,7 +574,7 @@ function togglePlay() {
     DOM.playBtn.textContent = "▶";
     DOM.playBtn.classList.remove("playing");
   } else {
-    State.audio.play().catch(() => showToast("Browser memblokir autoplay audio", true));
+    State.audio.play().catch(() => showToast("Browser blocked autoplay audio", true));
     State.isPlaying = true;
     DOM.playBtn.textContent = "⏸";
     DOM.playBtn.classList.add("playing");
@@ -593,7 +594,7 @@ function playSong(index) {
   }
 
   State.audio.src = song.url;
-  State.audio.play().catch(() => showToast("Browser memblokir autoplay audio", true));
+  State.audio.play().catch(() => showToast("Browser blocked autoplay audio", true));
   State.isPlaying = true;
 
   DOM.playerSongTitle.textContent = song.title;
@@ -705,7 +706,7 @@ function closeModal(id) {
   }
 }
 
-$$(".modal-overlay").forEach((overlay) => {
+$(".modal-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.classList.remove("open");
@@ -716,7 +717,7 @@ $$(".modal-overlay").forEach((overlay) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    $$(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
+    $(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
     closeLightbox();
     document.body.style.overflow = "";
   }
@@ -735,7 +736,7 @@ function initScrollReveal() {
     },
     { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
   );
-  $$(".reveal").forEach((el) => observer.observe(el));
+  $(".reveal").forEach((el) => observer.observe(el));
 }
 
 function escapeHtml(str) {
