@@ -1,0 +1,43 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release-package:
+    name: Verify & Package Tagged Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Lint & Tests
+        run: npm run lint && npm test
+
+      - name: Build Release Container Image
+        run: docker build -t romance-web:${{ github.ref_name }} .
+
+      - name: Archive Release Bundle
+        run: |
+          mkdir -p dist-release
+          tar -czf dist-release/romance-web-${{ github.ref_name }}.tar.gz server.js backend src migrations package.json package-lock.json Dockerfile
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: romance-web-${{ github.ref_name }}
+          path: dist-release/romance-web-${{ github.ref_name }}.tar.gz

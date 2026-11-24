@@ -1,122 +1,127 @@
-# Sweet Memories
+# Sweet Memories (Romance-web)
 
-Sweet Memories is a romantic memory journal for couples. It lets two people keep poems, photos, videos, and a shared music playlist in one place, with data stored in Supabase and served through a small Express backend.
+[![CI Pipeline](https://github.com/subki72/Romance-web/actions/workflows/ci.yml/badge.svg)](https://github.com/subki72/Romance-web/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-pink.svg)](./LICENSE)
+[![Node.js 22](https://img.shields.io/badge/Node.js-22%2B-339933.svg)](https://nodejs.org/)
+
+Sweet Memories is a private romantic memory journal for couples. It combines a responsive Vanilla ES-module web interface (poems, photo/video gallery with lightbox, anniversary day counter, and shared audio playlist) with a security-hardened Express 5 backend backed by Supabase PostgreSQL and Supabase Storage.
 
 ## Features
 
-- Password-protected access
-- Editable couple names
-- Anniversary day counter
-- Poetry section with create, edit, and delete actions
-- Photo and video gallery with captions and lightbox viewing
-- Audio playlist with play, pause, next, previous, and volume controls
-- Floating heart animations and responsive layout
-- Supabase-backed storage for app data and uploaded media
+- Fail-closed passphrase authentication with constant-time `crypto.timingSafeEqual` verification
+- Editable couple names and live anniversary day counter
+- Love poetry journal with create, edit, and delete modals
+- Photo and video gallery with captions, drag-and-drop uploads, and lightbox viewing
+- Persistent shared audio playlist with playback, seek, and volume controls
+- Hardened Express API with structured JSON logging, input validation, TTL caching, sliding-window rate limiting, CORS allowlist, and HTTP security headers
 
-## Tech Stack
-
-- Frontend: HTML, CSS, and Vanilla JavaScript ES modules
-- Backend: Node.js and Express
-- Database: Supabase PostgreSQL
-- Media storage: Supabase Storage
-- Upload handling: Multer in memory storage
-- Environment variables: dotenv
-- Cross-origin support: cors
-
-## Project Structure
+## Architecture & Project Structure
 
 ```text
-web-romance/
-|-- src/
-|   |-- index.html
-|   |-- main.js
-|   |-- api.js
-|   |-- state.js
-|   |-- ui.js
-|   `-- style.css
-|-- server.js
-|-- supabase-setup.sql
-|-- package.json
-|-- package-lock.json
-|-- .gitignore
-`-- README.md
+Romance-web/
+|-- backend/
+|   |-- app.js                  # Express app factory (dependency-injectable for tests)
+|   |-- config.js               # Bounded env loader & runtime startup validation
+|   |-- middleware/
+|   |   |-- auth.js             # Fail-closed constant-time auth & /api/verify handler
+|   |   |-- errorHandler.js     # Security headers, 404 handler & centralized ErrorHandler
+|   |   `-- rateLimiter.js      # Sliding-window in-memory rate limiter
+|   `-- utils/
+|       |-- cache.js            # In-memory TTL cache with write invalidation
+|       |-- logger.js           # Structured JSON logger with secret redaction
+|       `-- validator.js        # Payload schemas, MIME allowlist & traversal guards
+|-- docs/
+|   `-- runbook.md              # Operational checklist & incident playbooks
+|-- migrations/
+|   `-- 001_supabase_setup.sql  # Versioned PostgreSQL schema & RLS setup
+|-- src/                        # Public ES-module frontend (only directory served statically)
+|-- tests/                      # Automated unit & integration test suite (node:test)
+|-- server.js                   # Thin HTTP entrypoint
+|-- Dockerfile                  # Multi-stage non-root production image (node:22-alpine)
+|-- docker-compose.yml          # Hardened container orchestration
+|-- Makefile                    # Single-command install, lint, test & Docker workflows
+`-- eslint.config.js            # ESLint 10 rules for backend, tests & frontend modules
 ```
 
-## How It Works
+## Quick Start
 
-- `server.js` serves the static frontend from the project root and exposes the API endpoints.
-- The frontend loads `src/index.html`, which imports `src/main.js` as a module.
-- `src/main.js` handles UI behavior, modal flows, gallery actions, playlist controls, and authentication state.
-- `src/api.js` communicates with the backend endpoints.
-- App data is saved in the `app_data` table in Supabase.
-- Uploaded media is sent to Supabase Storage in the `memories` bucket.
+### Prerequisites
 
-## Prerequisites
+- Node.js 20+ (Node 22 recommended) and npm
+- A Supabase project with a `memories` Storage bucket
+- Optional: Docker & Docker Compose for containerized deployment
 
-- Node.js 14 or newer
-- npm
-- A Supabase project
-
-## Setup
-
-### 1. Install dependencies
+### 1. Install Dependencies & Apply Schema
 
 ```bash
-npm install
+make install
 ```
 
-### 2. Configure Supabase
+Run [`migrations/001_supabase_setup.sql`](./migrations/001_supabase_setup.sql) (or [`supabase-setup.sql`](./supabase-setup.sql)) in the Supabase SQL Editor, then create a storage bucket named `memories`.
 
-Run `supabase-setup.sql` in your Supabase SQL editor to create the required table.
+### 2. Configure Environment Variables
 
-Create a storage bucket named `memories` for media uploads.
+Copy `.env.example` to `.env` and fill in your credentials:
 
-### 3. Configure environment variables
-
-Create a `.env` file in the project root with the following values:
-
-```env
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-APP_PASSWORD=your-app-password
-PORT=3000
-NODE_ENV=development
-```
-
-### 4. Run the app
 ```bash
-npm run dev
+cp .env.example .env
 ```
 
-The app will be available at `http://localhost:3000`.
+Key environment variables:
+- `APP_PASSWORD`: Required non-empty login passphrase
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_SERVICE_KEY`: Server-side Supabase service role key
+- `ALLOWED_ORIGINS`: Comma-separated allowed CORS origins (e.g., `http://localhost:3000`)
+- `MAX_UPLOAD_MB`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, `REQUEST_TIMEOUT_MS`, `DATA_CACHE_TTL_MS`
 
-## Available Scripts
+### 3. Verify & Run
 
-- `npm run dev` starts the Express server in development mode
-- `npm start` starts the Express server in production mode
+```bash
+make verify
+make run
+```
+
+Open `http://localhost:3000`.
+
+### 4. Run with Docker
+
+```bash
+docker compose up --build
+```
+
+Verify container health:
+
+```bash
+curl -fsS http://127.0.0.1:3000/health
+```
 
 ## API Endpoints
 
-All protected endpoints expect the app password in the `Authorization` header.
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/health` | Public | Service liveness & uptime JSON probe |
+| `POST` | `/api/verify` | Rate-limited | Constant-time passphrase verification |
+| `GET` | `/api/data` | `Authorization` | Retrieve couple state JSON (TTL-cached) |
+| `POST` | `/api/data` | `Authorization` | Validate & persist couple state JSON |
+| `POST` | `/api/upload` | `Authorization` + Rate-limited | Upload validated image/video/audio media |
+| `DELETE` | `/api/upload/:filename` | `Authorization` | Delete media object (path-traversal protected) |
 
-- `POST /api/verify` verifies the login password
-- `GET /api/data` returns the saved app data
-- `POST /api/data` saves the app data
-- `POST /api/upload` uploads a media file to Supabase Storage
-- `DELETE /api/upload/:filename` deletes a media file from Supabase Storage
+## Testing & Quality Gates
 
-## Notes
+All backend routes, validation rules, rate limits, auth guards, and static isolation guarantees run offline via Node's built-in test runner with a mocked Supabase client:
 
-- `src/` contains the entire frontend application.
-- `db.json` and `tailwind.config.js` are not part of the current runtime implementation.
-- `uploads/` is not used by the current upload flow, which streams files directly to Supabase Storage.
+```bash
+npm run verify:syntax
+npm run lint
+npm test
+```
 
-## Security Notes
+## Security & Operations
 
-- The app password is stored only on the server side and sent through the `Authorization` header during requests.
-- The Supabase service role key must stay in the backend environment and should never be exposed in frontend code.
-- Use HTTPS in production.
+- Report vulnerabilities privately following [SECURITY.md](./SECURITY.md).
+- Operational recovery steps and environment checks are documented in [docs/runbook.md](./docs/runbook.md).
+- Release history is tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).

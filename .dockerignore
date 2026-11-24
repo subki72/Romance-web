@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+coverage
+uploads
+db.json
+tests
+docs
+*.md
+!README.md
+.DS_Store
+Thumbs.db
