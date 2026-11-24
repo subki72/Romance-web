@@ -1,20 +1,29 @@
 {
-  "name": "web",
+  "name": "romance-web",
   "version": "1.0.0",
+  "description": "Sweet Memories Web App - Couple Memory Journal with hardened Express API and Supabase Storage",
   "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node server.js",
-    "start": "node server.js"
+  "engines": {
+    "node": ">=20.0.0"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "Sweet Memories Web App",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "lint": "eslint . --max-warnings 0",
+    "test": "node --test tests/*.test.js",
+    "verify:syntax": "node --check server.js && node --check backend/app.js && node --check backend/config.js"
+  },
+  "author": "Muhammad Syafii Assubki",
+  "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0"
   }
 }

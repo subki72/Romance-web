@@ -1,4 +1,23 @@
-node_modules/
+# Environment & Secrets (Check 4.1)
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+secrets/
+
+# Dependencies & Coverage
+node_modules/
+coverage/
+npm-debug.log*
+
+# Legacy / Runtime Local Data
 uploads/
 db.json
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
