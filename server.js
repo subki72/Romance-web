@@ -1,151 +1,44 @@
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
-const path = require('path');
+'use strict';
 
-// Load environment variables
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-const { createClient } = require('@supabase/supabase-js');
+const { loadConfig, validateRuntimeConfig } = require('./backend/config');
+const { createApp } = require('./backend/app');
+const { logger } = require('./backend/utils/logger');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const APP_PASSWORD = process.env.APP_PASSWORD;
+/**
+ * Bootstrap configuration validation, create the Express app, and bind the HTTP listener.
+ * @returns {import('http').Server} Running HTTP server instance.
+ */
+function startServer() {
+  const config = loadConfig();
+  validateRuntimeConfig(config);
 
-// ─── Supabase Client ───
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+  const app = createApp({ config, logger });
+  const server = app.listen(config.port, () => {
+    logger.info('Sweet Memories server started', {
+      port: config.port,
+      nodeEnv: config.nodeEnv,
+    });
+  });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+  const shutdown = (signal) => {
+    logger.info('Shutdown signal received, closing HTTP server', { signal });
+    server.close(() => {
+      logger.info('HTTP server closed cleanly');
+      process.exit(0);
+    });
+  };
 
-// Serve static files (src/, assets/)
-app.use('/', express.static(__dirname));
+  process.once('SIGINT', () => shutdown('SIGINT'));
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  return server;
+}
 
-// Redirect root to the main app
-app.get('/', (req, res) => {
-  res.redirect('/src/index.html');
-});
+if (require.main === module) {
+  startServer();
+}
 
-// ─── Authentication Middleware ───
-const requireAuth = (req, res, next) => {
-  const clientPassword = req.headers['authorization'];
-  if (clientPassword !== APP_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid password or session expired' });
-  }
-  next();
-};
-
-// ─── API: Verify Login ───
-app.post('/api/verify', (req, res) => {
-  const { password } = req.body;
-  if (password === APP_PASSWORD) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ success: false });
-  }
-});
-
-// Multer: store in memory (we'll upload buffer to Supabase Storage)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
-});
-
-// ─── API: Get App Data (Protected) ───
-app.get('/api/data', requireAuth, async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('app_data')
-      .select('data')
-      .eq('id', 1)
-      .single();
-
-    if (error && error.code === 'PGRST116') {
-      return res.json({
-        poems: [],
-        photos: [],
-        playlist: [],
-        anniversary: null,
-        name1: "Your Name",
-        name2: "Partner"
-      });
-    }
-    if (error) throw error;
-    res.json(data.data);
-  } catch (err) {
-    console.error('GET /api/data error:', err.message);
-    res.status(500).json({ error: 'Failed to load data' });
-  }
-});
-
-// ─── API: Save App Data (Protected) ───
-app.post('/api/data', requireAuth, async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('app_data')
-      .upsert({ id: 1, data: req.body, updated_at: new Date().toISOString() })
-      .select();
-
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (err) {
-    console.error('POST /api/data error:', err.message);
-    res.status(500).json({ error: 'Failed to save data' });
-  }
-});
-
-// ─── API: Upload Media File (Protected) ───
-app.post('/api/upload', requireAuth, upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  try {
-    const ext = path.extname(req.file.originalname);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-
-    const { error } = await supabase.storage
-      .from('memories')
-      .upload(fileName, req.file.buffer, {
-        contentType: req.file.mimetype,
-        cacheControl: '31536000',
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('memories')
-      .getPublicUrl(fileName);
-
-    res.json({ url: urlData.publicUrl });
-  } catch (err) {
-    console.error('POST /api/upload error:', err.message);
-    res.status(500).json({ error: 'Failed to upload file' });
-  }
-});
-
-// ─── API: Delete Media File (Protected) ───
-app.delete('/api/upload/:filename', requireAuth, async (req, res) => {
-  try {
-    const { error } = await supabase.storage
-      .from('memories')
-      .remove([req.params.filename]);
-
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (err) {
-    console.error('DELETE /api/upload error:', err.message);
-    res.status(500).json({ error: 'Failed to delete file' });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Sweet Memories server running at http://localhost:${PORT}`);
-});
+module.exports = { startServer };
